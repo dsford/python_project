@@ -1,138 +1,217 @@
 #-*- coding: utf-8 -*-
 
-# CPU_Used_Report
+# CPU_Used_Report v161031
 
 import os
+import re
 import sys
 import time
+import codecs
 import openpyxl
 from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Font
-
-import dsford.search
 
 
 # 프로그램 이름
 program_name = "CPU_Used_Report"
 
+# 텍스트 파일 위치할 경로
 base_dir = ".\\"
-ext1 = "txt"
-pass_line = 6 # 처음 6줄은 데이터와 관련없음
+ext = "txt"
 
-t1 = 18 # 00:00 ~ 08:30 - 업무시간
-t2 = 19 # 09:00 ~ 18:00 - 업무시간
-t3 = 11 # 18:30 ~ 23:30 - 비업무시간
 
-# 반올림 
-round_num = 2
+
+def load_ini(ini_file_dir):
+
+    ini_file = codecs.open(ini_file_dir, "r", "utf-16")
+
+    ini_dict = {}
+
+    for line in ini_file:
+        temp = line.strip()
+        if not temp == "" and not temp[0] == "[" and not temp[0] == "#":
+            temp = line.strip().replace("==", "=▣")
+            temp = temp.split("=")
+            temp[1] = temp[1].replace("▣", "=")
+
+            try:
+                ini_dict[temp[0]] = int(temp[1])
+            except:
+                ini_dict[temp[0]] = temp[1]
+
+    ini_file.close()
+          
+    return ini_dict
+
+
+# 설정 파일 불러오기
+ini_file = load_ini(base_dir + program_name + ".ini")
+
+# 업무시간 구분
+start_working_time = time.strptime(ini_file["업무시작시간"], "%H:%M:%S")
+end_working_time = time.strptime(ini_file["업무종료시간"], "%H:%M:%S")
+
+# 데이터 추출 패턴
+pattern = r"\d{4}[-]\d{2}[-]\d{2}[ ]\d{2}[:]\d{2}[:]\d{2}[ ]\d+[.]\d+"
+
+# 남길 소수 자릿수 
+round_num = int(ini_file["소수자릿수"])
 
 # 엑셀 시작 위치
-start_row = 1
-start_col = 1
+start_row = int(ini_file["시작행"])
+start_col = int(ini_file["시작열"])
+column_headname = []
+for i in range(5):
+    column_headname.append(ini_file["머리말" + str(i + 1)])
 
 
+
+def num2excelcol(num):
+    
+    temp = []
+    
+    while True:
+        num, r = divmod(num, 26)
+    
+        if r == 0:
+            r = 26
+            num -= 1
+
+        temp.append(chr(r + 64))
+
+        if num < 26:
+            if not num == 0:
+                temp.append(chr(num + 64))
+            
+            col = []
+            for i in range(len(temp)-1,-1,-1):
+                col.append(temp[i])
+            
+            return "".join(col)
+
+
+        
 def make_xlsx(data, file_dir):
 
     wb = openpyxl.Workbook()
     ws = wb.active
 
     xlsx_file = file_dir[:-3] + "xlsx"
-
-
-    ws.column_dimensions["A"].width = 15
-    ws.column_dimensions["B"].width = 15
-    ws.column_dimensions["C"].width = 15
-    
-    ws.cell(column=start_col, row=start_row, value="년월일")
-    ws.cell(column=start_col, row=start_row).alignment=Alignment(horizontal="center",vertical="center")
-    ws.cell(column=start_col, row=start_row).border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
-    ws.cell(column=start_col + 1, row=start_row, value="업무시간평균")
-    ws.cell(column=start_col + 1, row=start_row).alignment=Alignment(horizontal="center",vertical="center")
-    ws.cell(column=start_col + 1, row=start_row).border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
-    ws.cell(column=start_col + 2, row=start_row, value="비업무시간평균")
-    ws.cell(column=start_col + 2, row=start_row).alignment=Alignment(horizontal="center",vertical="center")
-    ws.cell(column=start_col + 2, row=start_row).border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
-    
-    
+  
+    for i in range(5):
+        ws.column_dimensions[num2excelcol(start_col + i)].width = 15
+        ws.cell(column=start_col + i, row=start_row, value=column_headname[i])
+        ws.cell(column=start_col + i, row=start_row).alignment=Alignment(horizontal="center",vertical="center")
+        ws.cell(column=start_col + i, row=start_row).border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
+       
     for i in range(len(data)):
-        ws.cell(column=start_col, row=start_row + i + 1, value=data[i][0])
-        ws.cell(column=start_col, row=start_row + i + 1).alignment=Alignment(horizontal="center",vertical="center")
-        ws.cell(column=start_col, row=start_row + i + 1).border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
-        
-        ws.cell(column=start_col + 1, row=start_row + i + 1, value=data[i][1])
-        ws.cell(column=start_col + 1, row=start_row + i + 1).alignment=Alignment(horizontal="center",vertical="center")
-        ws.cell(column=start_col + 1, row=start_row + i + 1).border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
-        
-        
-        ws.cell(column=start_col + 2, row=start_row + i + 1, value=data[i][2])
-        ws.cell(column=start_col + 2, row=start_row + i + 1).alignment=Alignment(horizontal="center",vertical="center")
-        ws.cell(column=start_col + 2, row=start_row + i + 1).border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
-               
-    
+        for j in range(5):
+            ws.cell(column=start_col + j, row=start_row + i + 1, value=data[i][j])
+            ws.cell(column=start_col + j, row=start_row + i + 1).alignment=Alignment(horizontal="center",vertical="center")
+            ws.cell(column=start_col + j, row=start_row + i + 1).border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
+                
     wb.save(filename = xlsx_file)
 
     return 0
+
 
 
 def txt_analysis(txt_file):
 
     file = open(txt_file, "r")
 
-    # 데이터와 관련 없는 첫 부분 제외
-    for i in range(pass_line):
-        file.readline()
+    line_num = len(file.readlines())
+    file.seek(0)
+    
 
-    # 데이터 가져오기
+    # 필요한 데이터만 추출
     ori_db = []
-    line_end = 0
-    while line_end == 0:
-        temp = file.readline().strip()
-        if not temp == "":     
-            ori_db.append(temp)
-        else:
-            line_end = 1
+    for i in range(line_num):
+        temp = re.findall(pattern,file.readline().strip())
 
-    # 오름차순 정렬
+        if not len(temp) == 0:
+            ori_db.append(temp[0])
+            
     ori_db.sort()
 
-    # "날짜, 시간, 수치" 로 분리(공백 한칸)
+
+    # 데이터 분리
     new_db = []
     for db in ori_db:
         new_db.append(db.split(" "))
 
 
+    # 계산
     used_result = []
-    line = 0
-    for i in range(len(new_db) // (t1 + t2 + t3)):
+    for i in range(len(new_db)):
 
-        # 일자
-        temp_date = new_db[line][0]
+        if i == 0:
+            current_date = new_db[i][0]
+            temp_work = []
+            temp_nonwork = []
 
-        temp_work = []
-        temp_nonwork = []
+        if not current_date == new_db[i][0]:
 
-        # 비업무시간 : 00:00 ~ 08:30
-        for j in range(t1):
-            temp_nonwork.append(float(new_db[line][2]))
-            line += 1
+            work_average = round(sum(temp_work)/len(temp_work),round_num)
+            work_max = max(temp_work)
+            nonwork_average = round(sum(temp_nonwork)/len(temp_nonwork),round_num)
+            nonwork_max = max(temp_nonwork)
+
+            used_result.append([current_date, work_average, work_max, nonwork_average, nonwork_max])
+
+            temp_work = []
+            temp_nonwork = []
+
+            current_date = new_db[i][0]
             
-        # 업무시간 : 09:00 ~ 18:00
-        for j in range(t2):
-            temp_work.append(float(new_db[line][2]))
-            line += 1
 
-        # 비업무시간 : 18:30 ~ 23:30
-        for j in range(t3):
-            temp_nonwork.append(float(new_db[line][2]))
-            line += 1
+        current_time = time.strptime(new_db[i][1], "%H:%M:%S")
 
-        # 각 수치 평균
-        work_average = round(sum(temp_work)/t2,round_num)
-        nonwork_average = round(sum(temp_nonwork)/(t1 + t3),round_num)
+        if current_time >= start_working_time and current_time <= end_working_time:
+            
+            temp_work.append(float(new_db[i][2]))
+            
+        else:
+            
+            temp_nonwork.append(float(new_db[i][2]))
 
-        used_result.append([temp_date, work_average, nonwork_average])
 
+        if i == len(new_db) - 1:
+            work_average = round(sum(temp_work)/len(temp_work),round_num)
+            work_max = max(temp_work)
+            nonwork_average = round(sum(temp_nonwork)/len(temp_nonwork),round_num)
+            nonwork_max = max(temp_nonwork)
+
+            used_result.append([current_date, work_average, work_max, nonwork_average, nonwork_max])
+
+              
     return used_result
+
+
+
+def search_ext(dirname, file_ext, is_full_dir):
+
+    file_list = []
+    file_ext = "." + file_ext         
+    file_name = os.listdir(dirname)
         
+    for file in file_name:
+        ext = os.path.splitext(file)[-1]
+        
+        if ext.upper() == file_ext.upper():
+            if is_full_dir == 1:
+                if dirname == ".\\":
+                    full_dir = os.path.abspath(os.curdir) + "\\" + file
+                else:
+                    full_dir = os.path.abspath(dirname) + "\\" + file
+
+                file_list.append(full_dir)
+                
+            else:
+                file_list.append(file)
+           
+    return file_list
+
+
         
 def main():
 
@@ -142,8 +221,8 @@ def main():
     file_list = []
     full_file_list = []
 
-    file_list += dsford.search.ext(base_dir, ext1, 0)
-    full_file_list += dsford.search.ext(base_dir, ext1, 1)
+    file_list += search_ext(base_dir, ext, 0)
+    full_file_list += search_ext(base_dir, ext, 1)
 
     if len(file_list) == 0:
         print(base_dir + "에 txt 파일이 존재하지 않습니다.")
@@ -154,12 +233,17 @@ def main():
     print("대상 파일 : " + str(len(file_list)) + "개\n")
 
     for file in full_file_list:
+        
         data = txt_analysis(file)
+        
         make_xlsx(data, file)
+        
         
     print("모든 작업을 완료했습니다.")
     time.sleep(2)        
     sys.exit()
+
+    
     
 if __name__ == '__main__':
     sys.exit(main())
