@@ -1,6 +1,6 @@
 #-*- coding: utf-8 -*-
 
-# CPU_Used_Report v161031
+# CPU_Used_Report v161101
 
 import os
 import re
@@ -60,7 +60,7 @@ round_num = int(ini_file["소수자릿수"])
 start_row = int(ini_file["시작행"])
 start_col = int(ini_file["시작열"])
 column_headname = []
-for i in range(5):
+for i in range(7):
     column_headname.append(ini_file["머리말" + str(i + 1)])
 
 
@@ -89,6 +89,12 @@ def num2excelcol(num):
             return "".join(col)
 
 
+
+def average_list(db, num):
+
+    return round(sum(db)/len(db),num)
+
+
         
 def make_xlsx(data, file_dir):
 
@@ -96,18 +102,53 @@ def make_xlsx(data, file_dir):
     ws = wb.active
 
     xlsx_file = file_dir[:-3] + "xlsx"
+
   
     for i in range(5):
         ws.column_dimensions[num2excelcol(start_col + i)].width = 15
         ws.cell(column=start_col + i, row=start_row, value=column_headname[i])
         ws.cell(column=start_col + i, row=start_row).alignment=Alignment(horizontal="center",vertical="center")
-        ws.cell(column=start_col + i, row=start_row).border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
-       
+        ws.cell(column=start_col + i, row=start_row).border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="double"))
+
+
+    temp1 = []
+    temp2 = []
+    temp3 = []
+    temp4 = []
     for i in range(len(data)):
         for j in range(5):
             ws.cell(column=start_col + j, row=start_row + i + 1, value=data[i][j])
             ws.cell(column=start_col + j, row=start_row + i + 1).alignment=Alignment(horizontal="center",vertical="center")
             ws.cell(column=start_col + j, row=start_row + i + 1).border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
+        
+            temp1.append(data[i][1])
+            temp2.append(data[i][2])
+            temp3.append(data[i][3])
+            temp4.append(data[i][4])
+            
+    new_data = [temp1, temp2, temp3, temp4]
+
+        
+        
+    for i in range(2):
+        ws.cell(column=start_col, row=start_row + len(data) + 1 + i, value=column_headname[i + 5])
+        ws.cell(column=start_col, row=start_row + len(data) + 1 + i).alignment=Alignment(horizontal="center",vertical="center")
+        if i == 0:
+            ws.cell(column=start_col, row=start_row + len(data) + 1 + i).border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="double"), bottom=Side(style="thin"))
+        else:
+            ws.cell(column=start_col, row=start_row + len(data) + 1 + i).border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
+
+        for j in range(4):
+            if i == 0:
+                ws.cell(column=start_col + 1 + j, row=start_row + len(data) + 1 + i, value=average_list(new_data[j], round_num))
+                ws.cell(column=start_col + 1 + j, row=start_row + len(data) + 1 + i).border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="double"), bottom=Side(style="thin"))
+            else:
+                ws.cell(column=start_col + 1 + j, row=start_row + len(data) + 1 + i, value=max(new_data[j]))
+                ws.cell(column=start_col + 1 + j, row=start_row + len(data) + 1 + i).border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
+
+            ws.cell(column=start_col + 1 + j, row=start_row + len(data) + 1 + i).alignment=Alignment(horizontal="center",vertical="center")
+            
+
                 
     wb.save(filename = xlsx_file)
 
@@ -151,9 +192,9 @@ def txt_analysis(txt_file):
 
         if not current_date == new_db[i][0]:
 
-            work_average = round(sum(temp_work)/len(temp_work),round_num)
+            work_average = average_list(temp_work, round_num)
             work_max = max(temp_work)
-            nonwork_average = round(sum(temp_nonwork)/len(temp_nonwork),round_num)
+            nonwork_average = average_list(temp_nonwork, round_num)
             nonwork_max = max(temp_nonwork)
 
             used_result.append([current_date, work_average, work_max, nonwork_average, nonwork_max])
@@ -176,9 +217,9 @@ def txt_analysis(txt_file):
 
 
         if i == len(new_db) - 1:
-            work_average = round(sum(temp_work)/len(temp_work),round_num)
+            work_average = average_list(temp_work, round_num)
             work_max = max(temp_work)
-            nonwork_average = round(sum(temp_nonwork)/len(temp_nonwork),round_num)
+            nonwork_average = average_list(temp_nonwork, round_num)
             nonwork_max = max(temp_nonwork)
 
             used_result.append([current_date, work_average, work_max, nonwork_average, nonwork_max])
