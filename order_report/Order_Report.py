@@ -199,31 +199,37 @@ def write_xlsx(wb2, ws2, file, ncol, trow, total_count_list, new_max_order_count
     HeadColColor = str(ini_dict["HeadColColor"])
     TotalRowColor = str(ini_dict["TotalRowColor"])
     
-    #합계위치옵션 생략으로 인한 수정(1612XX)
+    #합계위치옵션 생략으로 인한 수정(161205) => 다시 부활(161206)
     
     for i in range(new_max_order_count + 1):
         if not i == 0:
-            ws2.cell(column=ncol + 1 + i - 1, row=trow + 1, value="옵션" + str(i))
+            ws2.cell(column=ncol + 1 + i, row=trow + 1, value="옵션" + str(i))
+          
+        else:
+            ws2.cell(column=ncol + 1 + i, row=trow + 1, value="합계")
 
-            ws2.cell(column=ncol + 1 + i - 1, row=trow + 1).alignment=Alignment(horizontal="center",vertical="center")
-            ws2.cell(column=ncol + 1 + i - 1, row=trow + 1).font = Font(bold=True)
-            ws2.cell(column=ncol + 1 + i - 1, row=trow + 1).border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
-            ws2.cell(column=ncol + 1 + i - 1, row=trow + 1).fill = PatternFill(fill_type="solid", start_color=HeadColColor)
-        #else:
-            #ws2.cell(column=ncol + 1 + i, row=trow + 1, value="합계")
+        ws2.cell(column=ncol + 1 + i, row=trow + 1).alignment=Alignment(horizontal="center",vertical="center")
+        ws2.cell(column=ncol + 1 + i, row=trow + 1).font = Font(bold=True)
+        ws2.cell(column=ncol + 1 + i, row=trow + 1).border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
+        ws2.cell(column=ncol + 1 + i, row=trow + 1).fill = PatternFill(fill_type="solid", start_color=HeadColColor)
+
             
     for i in range(len(total_count_list)):
         for j in range(new_max_order_count + 1):
-            if not j == 0:
-                if not total_count_list[i][j] == "":
-                    ws2.cell(column=ncol + 1 + j - 1, row=trow + 2 + i, value=int(total_count_list[i][j]))
+            if not total_count_list[i][j] == "":
+                ws2.cell(column=ncol + 1 + j, row=trow + 2 + i, value=int(total_count_list[i][j]))
 
-                ws2.cell(column=ncol + 1 + j - 1, row=trow + 2 + i).alignment=Alignment(horizontal="center",vertical="center")
-                ws2.cell(column=ncol + 1 + j - 1, row=trow + 2 + i).border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
+            ws2.cell(column=ncol + 1 + j, row=trow + 2 + i).alignment=Alignment(horizontal="center",vertical="center")
+            ws2.cell(column=ncol + 1 + j, row=trow + 2 + i).border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
 
-                if i == len(total_count_list) - 1:
-                    ws2.cell(column=ncol + 1 + j - 1, row=trow + 2 + i).font = Font(bold=True)
-                    ws2.cell(column=ncol + 1 + j - 1, row=trow + 2 + i).fill = PatternFill(fill_type="solid", start_color=TotalRowColor)
+            if j == 0:
+                ws2.cell(column=ncol + 1 + j, row=trow + 2 + i).font = Font(bold=True)
+                ws2.cell(column=ncol + 1 + j, row=trow + 2 + i).fill = PatternFill(fill_type="solid", start_color=TotalRowColor)
+
+
+            if i == len(total_count_list) - 1:
+                ws2.cell(column=ncol + 1 + j, row=trow + 2 + i).font = Font(bold=True)
+                ws2.cell(column=ncol + 1 + j, row=trow + 2 + i).fill = PatternFill(fill_type="solid", start_color=TotalRowColor)
 
 
     if is_filter == 1:
@@ -489,7 +495,7 @@ def data_summary(file):
         else:
             total_count_list.append(get_data(data[i]))
 
-    #옵션합계(1612XX)
+    #옵션합계(161205)
     option_sum = []
     for i in range(len(total_count_list[0])):
         option_temp_sum = 0
@@ -559,7 +565,7 @@ def data_summary(file):
 
             for i in range(new_max_order_count + 1):
                 if i == 0:
-                    pass
+                    txt_file.write("합계" + "\t")
                     
                 else:
                     txt_file.write("옵션" + str(i) + "\t")
@@ -567,14 +573,13 @@ def data_summary(file):
             txt_file.write("\r\n")
 
             for i in range(len(total_count_list)):
-                print(total_count_list[i])
+                
                 #합계랑 구분하기 위한 선 그리기 
                 if i == len(total_count_list) - 1:
-                    txt_file.write("=" * new_max_order_count * 7 + "\r\n")
+                    txt_file.write("=" * (new_max_order_count + 1) * 7 + "\r\n")
                         
                 for j in range(new_max_order_count + 1):                                
-                    if not j == 0:
-                        txt_file.write(str(total_count_list[i][j]) + "\t")
+                    txt_file.write(str(total_count_list[i][j]) + "\t")
                 txt_file.write("\r\n")
 
             txt_file.close()
