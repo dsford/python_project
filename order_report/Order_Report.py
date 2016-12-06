@@ -1,6 +1,6 @@
 #-*- coding: utf-8 -*-
 
-# Order Report
+# Order Report 1612XX
 
 import os
 import re
@@ -139,7 +139,9 @@ def get_data(ori_text):
         if count_list[get_list[i][0]] == "":
             count_list[get_list[i][0]] = 0
         count_list[get_list[i][0]] = count_list[get_list[i][0]] + get_list[i][1]
-
+        
+    
+    
     temp_sum = 0
     
     for i in range(1, len(count_list)):
@@ -147,7 +149,8 @@ def get_data(ori_text):
             temp_sum = temp_sum + count_list[i]
 
     count_list[0] = temp_sum
-     
+    
+    
     return count_list
 
 
@@ -191,12 +194,57 @@ def num2col(number):
 
 
 #xlsx파일에 직접 테이블 기록
-def write_xlsx(wb2, ws2, file, ncol, trow, total_count_list, new_max_order_count, ManageDataOrderBy, first_col, is_filter):
+def write_xlsx(wb2, ws2, file, ncol, trow, total_count_list, new_max_order_count, first_col, is_filter):
 
     HeadColColor = str(ini_dict["HeadColColor"])
     TotalRowColor = str(ini_dict["TotalRowColor"])
+    
+    #합계위치옵션 생략으로 인한 수정(1612XX)
+    
+    for i in range(new_max_order_count + 1):
+        if not i == 0:
+            ws2.cell(column=ncol + 1 + i - 1, row=trow + 1, value="옵션" + str(i))
+
+            ws2.cell(column=ncol + 1 + i - 1, row=trow + 1).alignment=Alignment(horizontal="center",vertical="center")
+            ws2.cell(column=ncol + 1 + i - 1, row=trow + 1).font = Font(bold=True)
+            ws2.cell(column=ncol + 1 + i - 1, row=trow + 1).border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
+            ws2.cell(column=ncol + 1 + i - 1, row=trow + 1).fill = PatternFill(fill_type="solid", start_color=HeadColColor)
+        #else:
+            #ws2.cell(column=ncol + 1 + i, row=trow + 1, value="합계")
+            
+    for i in range(len(total_count_list)):
+        for j in range(new_max_order_count + 1):
+            if not j == 0:
+                if not total_count_list[i][j] == "":
+                    ws2.cell(column=ncol + 1 + j - 1, row=trow + 2 + i, value=int(total_count_list[i][j]))
+
+                ws2.cell(column=ncol + 1 + j - 1, row=trow + 2 + i).alignment=Alignment(horizontal="center",vertical="center")
+                ws2.cell(column=ncol + 1 + j - 1, row=trow + 2 + i).border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
+
+                if i == len(total_count_list) - 1:
+                    ws2.cell(column=ncol + 1 + j - 1, row=trow + 2 + i).font = Font(bold=True)
+                    ws2.cell(column=ncol + 1 + j - 1, row=trow + 2 + i).fill = PatternFill(fill_type="solid", start_color=TotalRowColor)
 
 
+    if is_filter == 1:
+        range_address = num2col(first_col + 1) + str(trow + 1) + ":" + num2col(ncol + 1 + new_max_order_count - 1) + str(trow + 2 + len(total_count_list) - 1)
+        sort_range_address = num2col(ncol + 1 + 1) + str(trow + 1 + 1) + ":" + num2col(ncol + 1 + 1 - 1) + str(trow + 2 + len(total_count_list) - 1)
+        ws2.auto_filter.ref = range_address
+            
+            
+    wb2.save(filename = file)
+
+    print("\n" + file.split("\\")[len(file.split("\\")) - 1] + "에 대한 작업을 완료했습니다.\n")
+    print("처리할 다른 파일이 남아있다면 2초 후 다시 시작합니다.\n")
+    time.sleep(2)
+    if ini_dict["ShowReport"].upper() == "True".upper():
+        report_work_result.append("성공")
+        report_work_note.append("")
+
+
+
+    #항목합계 생략
+    """
     if ManageDataOrderBy.upper() == "TotalToCase".upper():
         for i in range(new_max_order_count + 1):
             if not i == 0:
@@ -279,7 +327,9 @@ def write_xlsx(wb2, ws2, file, ncol, trow, total_count_list, new_max_order_count
         if ini_dict["ShowReport"].upper() == "True".upper():
             report_work_result.append("성공")
             report_work_note.append("")
+   
 
+    
     else:
         os.system("cls")
         print("\nManageDataOrderBy 옵션이 올바르지 않습니다.")
@@ -292,7 +342,7 @@ def write_xlsx(wb2, ws2, file, ncol, trow, total_count_list, new_max_order_count
                 
         sys.exit()
 
-
+    """
 
 
 
@@ -381,8 +431,11 @@ def data_summary(file):
                     
                         for i in range(len(temp_col)):
                             temp_db = ws.col_values(temp_col[i])
+                            
+                            #print("[" + str(i + 1) + "]    " + temp_db[int(len(temp_db) / 2) + 1][:50] + "\n\n")
+                            print("[" + str(i + 1) + "]    " + str(temp_db[temp_row[i] + 1])[:50] + "\n\n")
+                            #항목 바로 아래 데이터를 가져오도록 수정(161205)
 
-                            print("[" + str(i + 1) + "]    " + temp_db[int(len(temp_db) / 2) + 1][:50] + "\n\n")
 
                         print("[X]    프로그램 종료(파일이 여러개면 다음 파일로 넘어갑니다.)\n\n")
                             
@@ -436,18 +489,38 @@ def data_summary(file):
         else:
             total_count_list.append(get_data(data[i]))
 
+    #옵션합계(1612XX)
+    option_sum = []
+    for i in range(len(total_count_list[0])):
+        option_temp_sum = 0
+        
+        for j in range(len(total_count_list)):
+            try:
+                option_temp_sum = option_temp_sum + int(total_count_list[j][i])
+            except:
+                pass          
+        if option_temp_sum == 0:
+            option_temp_sum = ""
+        option_sum.append(option_temp_sum)
+        
+    total_count_list.append(option_sum)
+    
+   
+
     temp_max = 1
     for i in range(trow + 1, len(total_count_list)):
         for j in range(len(total_count_list[i])):
             if not total_count_list[i][j] == "":
                 temp_max = max(temp_max, j)
-
+    
     new_max_order_count = temp_max
+
+    
                 
 
     #파일쓰기 작업
 
-    ManageDataOrderBy = ini_dict["ManageDataOrderBy"]
+    #ManageDataOrderBy = ini_dict["ManageDataOrderBy"]
 
     if file[-4:].upper() == "xlsx".upper():
 
@@ -458,7 +531,7 @@ def data_summary(file):
         if ini_dict["ManageHeaderColFilters"].upper() == "True".upper():
             is_filter = 1
     
-        write_xlsx(wb2, ws2, file, ncol, trow, total_count_list, new_max_order_count, ManageDataOrderBy, first_col, is_filter)
+        write_xlsx(wb2, ws2, file, ncol, trow, total_count_list, new_max_order_count, first_col, is_filter)
         
 
     elif file[-3:].upper() == "xls".upper():
@@ -476,7 +549,7 @@ def data_summary(file):
 
             new_file = file[:-4] + "_Report.xlsx"
         
-            write_xlsx(wb2, ws2, new_file, 0, trow, total_count_list, new_max_order_count, ManageDataOrderBy, 0, 0)
+            write_xlsx(wb2, ws2, new_file, 0, trow, total_count_list, new_max_order_count, 0, 0)
 
     
         elif ManageXlsDataWrite.upper() == "Txt".upper():
@@ -484,17 +557,51 @@ def data_summary(file):
             txt_file = open(file[:-3] + "txt", "w")
 
 
+            for i in range(new_max_order_count + 1):
+                if i == 0:
+                    pass
+                    
+                else:
+                    txt_file.write("옵션" + str(i) + "\t")
+                    
+            txt_file.write("\r\n")
+
+            for i in range(len(total_count_list)):
+                print(total_count_list[i])
+                #합계랑 구분하기 위한 선 그리기 
+                if i == len(total_count_list) - 1:
+                    txt_file.write("=" * new_max_order_count * 7 + "\r\n")
+                        
+                for j in range(new_max_order_count + 1):                                
+                    if not j == 0:
+                        txt_file.write(str(total_count_list[i][j]) + "\t")
+                txt_file.write("\r\n")
+
+            txt_file.close()
+            print(file.split("\\")[len(file.split("\\")) - 1][:-3] + "txt" + "파일을 생성했습니다.\n")
+            report_work_result.append("성공")
+            report_work_note.append(file.split("\\")[len(file.split("\\")) - 1][:-3] + "txt" + "로 생성")
+
+
+            # ManageDataOrderBy 옵션 미사용으로 인한 생략(1612XX)
+            """
+
             if ManageDataOrderBy.upper() == "TotalToCase".upper():
                 for i in range(new_max_order_count + 1):
                     if i == 0:
-                        txt_file.write("합계" + "\t")
+                        pass
+                        #txt_file.write("합계" + "\t")
                     else:
                         txt_file.write("옵션" + str(i) + "\t")
                 txt_file.write("\r\n")
 
                 for i in range(len(total_count_list)):
                     for j in range(new_max_order_count + 1):
-                        txt_file.write(str(total_count_list[i][j]) + "\t")
+                        #합계랑 구분하기 위한 선 그리기
+                        if i == len(total_count_list) - 1:
+                            txt_file.write("=" * new_max_order_count * 2 + "\r\n")
+                        if not j == 0:
+                            txt_file.write(str(total_count_list[i][j]) + "\t")
                     txt_file.write("\r\n")
 
                 txt_file.close()
@@ -532,7 +639,7 @@ def data_summary(file):
                     os.startfile(report_folder + program_start_time + ".txt")
                 
                 sys.exit()
-            
+            """
         else:
                 os.system("cls")
                 print("\nManageXlsDataWrite 설정이 올바르지 않습니다.\n")
@@ -544,20 +651,20 @@ def data_summary(file):
                     os.startfile(report_folder + program_start_time + ".txt")
                 
                 sys.exit()
-
+    
     else:
         os.system("cls")
-        print("\nManageDataOrderBy 옵션이 올바르지 않습니다.\n")
+        print("\nManageXlsDataWrite 옵션이 올바르지 않습니다.\n")
         print("프로그램을 종료합니다. ini파일을 확인해 주세요.")
         time.sleep(2)
         if ini_dict["ShowReport"] == "True":
-            report_file.write("ManageDataOrderBy 설정이 올바르지 않습니다.\n")
+            report_file.write("ManageXlsDataWrite 설정이 올바르지 않습니다.\n")
             report_file.close()
             os.startfile(report_folder + program_start_time + ".txt")
                 
         sys.exit()                      
     
-
+    
 
 
 

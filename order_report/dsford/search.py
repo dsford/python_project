@@ -12,7 +12,7 @@ def ext(dirname, file_ext, is_full_dir):
     for file in file_name:
         ext = os.path.splitext(file)[-1]
         
-        if ext == file_ext:
+        if ext.upper() == file_ext.upper():
             if is_full_dir == 1:
                 if dirname == ".\\":
                     full_dir = os.path.abspath(os.curdir) + "\\" + file
